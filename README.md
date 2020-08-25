@@ -7,6 +7,7 @@
 - Plot cost-iteration graph
 
 ### TODO:
+- [ ] Use Kwargs** instead of Args** for class constructor
 - [ ] Add API documentation
 - [ ] Replace `nn_utils` with custom functions
 - [ ] Add method docstrings
