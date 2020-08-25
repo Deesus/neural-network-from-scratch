@@ -1,3 +1,7 @@
+"""
+Credit for all utility functions in this module belong to Andrew Ng
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io
