@@ -1,17 +1,18 @@
 # Simple Neural Network from Scratch
 
-## Features:
+### Features:
 - Custom initialization: He, Xavier
 - Custom hyperparameters: learning rate, custom layers and layer size, number of iterations
+- Custom regularization: L2 regularization
 - Plot cost-iteration graph
 
-## TODO:
+### TODO:
 - [ ] Add API documentation
-- [ ] Replace `local_utils` with custom functions
+- [ ] Replace `nn_utils` with custom functions
 - [ ] Add method docstrings
 - Features:
-    - [ ] Regularization: dropout + L2 regularization
+    - [ ] Regularization: dropout
     - [ ] Mini-batch gradient descent
 
-## License:
+### License:
 Copyright 2020 Dee Reddy. BSD-2 License.
