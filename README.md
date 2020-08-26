@@ -3,7 +3,7 @@
 ### Features:
 - Custom initialization: He, Xavier
 - Custom hyperparameters: learning rate, custom layers and layer size, number of iterations
-- Custom regularization: L2 regularization
+- Custom regularization: L2 regularization, dropout
 - Plot cost-iteration graph
 
 ### TODO:
@@ -12,7 +12,6 @@
 - [ ] Replace `nn_utils` with custom functions
 - [ ] Add method docstrings
 - Features:
-    - [ ] Regularization: dropout
     - [ ] Mini-batch gradient descent
 
 ### License:
