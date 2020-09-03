@@ -16,10 +16,19 @@
 # # Simple Neural Network - Binary Classification
 # ###### Neural network from scratch
 
+# +
 import numpy as np
 import matplotlib.pyplot as plt
 from nn_utils import plot_decision_boundary, load_2D_dataset
+import warnings
 
+
+# ignore warnings by message (caused by log of zeros/close-to-zero numbers during training):
+warnings.filterwarnings('ignore', message='divide by zero encountered in log')
+warnings.filterwarnings('ignore', message='invalid value encountered in multiply')
+
+
+# -
 
 class NN_Model():
     __PRINT_COST_INTERVAL = 2000
@@ -48,7 +57,7 @@ class NN_Model():
         self.b = {}
         self.W = {}
         self.Z = {}
-        self.A = { 0: X }
+        self.A = {0: X}
         self.db = {}
         self.dW = {}
         self.dA = {}
@@ -261,6 +270,3 @@ axes = plt.gca()
 axes.set_xlim([-0.75,0.40])
 axes.set_ylim([-0.75,0.65])
 plot_decision_boundary(lambda x: new_model.predict(x.T), train_X, np.squeeze(train_Y))
-
-# + pycharm={"name": "#%%\n"}
-
