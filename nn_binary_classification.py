@@ -61,25 +61,25 @@ class NN_Model():
         self.db = {}
         self.dW = {}
         self.dA = {}
-        self.costs = []  # the cost at a given interval/number of iterations, __PRINT_COST_INTERVAL
+        self.costs = [] # the cost at a given interval/number of iterations, __PRINT_COST_INTERVAL
 
         self.is_training = True
         self.dropout_mask = {}
-        self.layers = [X.shape[0]] + hidden_layers + [1]    # array of layer shapes (nodes per layer), including input and output layers
-        self.L = len(self.layers)-1                         # number of layers
-        self.m = X.shape[1]                                 # number of training examples
+        self.layers = [ {'size': X.shape[0]} ] + hidden_layers + [ {'size': 1} ]  # array of layer shapes (nodes per layer), including input and output layers
+        self.L = len(self.layers)-1     # number of layers
+        self.m = X.shape[1]             # number of training examples
 
         # initialize parameters, W and b:
         for l in range(1, self.L+1):
-            # check if layer is dict object and determine layer sizes:
-            if type(self.layers[l]) == dict and 'size' in self.layers[l]:
-                layer_size = self.layers[l]['size']
-            else:
-                layer_size = self.layers[l]
-            if type(self.layers[l-1]) == dict and 'size' in self.layers[l-1]:
-                previous_layer_size = self.layers[l-1]['size']
-            else:
-                previous_layer_size = self.layers[l-1]
+            # ensure hidden_layers was properly passed as a list of dictionaries:
+            # TODO: n.b. code will fail anyway if hidden layers is not properly defined,
+            #  so this is check is mostly for the additional error hint and may not be that useful
+            if type(self.layers[l]) != dict and 'size' not in self.layers[l]:
+                raise TypeError('each item in "layers" must be a dict and must have a property of "size"')
+
+            # determine layer sizes:
+            layer_size = self.layers[l]['size']
+            previous_layer_size = self.layers[l-1]['size']
 
             self.W[l] = np.random.randn(layer_size, previous_layer_size)
             self.b[l] = np.zeros((layer_size, 1))
@@ -127,8 +127,8 @@ class NN_Model():
             # need to scale the values of neurons that weren't shut down:
             if self.is_training and (type(self.layers[l]) == dict) and ('keep_prob' in self.layers[l]):
                 self.dropout_mask[l] = np.random.random((self.A[l].shape[0], self.A[l].shape[1])) < self.layers[l]['keep_prob']
-                self.A[l] *= self.dropout_mask[l]  # apply mask
-                self.A[l] /= self.layers[l]['keep_prob']  # scale by keep_probability
+                self.A[l] *= self.dropout_mask[l] # apply mask
+                self.A[l] /= self.layers[l]['keep_prob'] # scale by keep_probability
 
         Y_hat = self.A[self.L]
         return Y_hat
@@ -240,7 +240,7 @@ train_X, train_Y, test_X, test_Y = load_2D_dataset()
 
 # +
 # hyper parameters:
-train_hidden_layers = [{'size': 20, 'keep_prob': 0.8}, {'size': 3, 'keep_prob': 0.75}]
+train_hidden_layers = [{ 'size': 20, 'keep_prob': 0.8 }, { 'size': 3, 'keep_prob': 0.75 }]
 train_learning_rate = 0.3
 train_num_iterations = 60000
 
