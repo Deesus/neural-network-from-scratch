@@ -14,8 +14,10 @@
 - [ ] Add API documentation
 - [ ] Replace `nn_utils` with custom functions
 - [ ] Add method docstrings
-- Features:
+- Add features:
     - [ ] Mini-batch gradient descent
+    - [ ] Batch norm
+    - [ ] Algorithms: momentum, RMS Prop, Adam
 
 ### License:
 Copyright 2020 Dee Reddy. BSD-2 License.
