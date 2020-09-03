@@ -186,7 +186,9 @@ class NN_Model():
         """ Trains the model after initialization. """
         self.is_training = True
         self.costs = []
-        
+
+        self.print_hyperparameters()
+
         for i in range(self.num_iterations+1):
             Y_hat = self.forward_prop()
             self.back_prop()
@@ -202,6 +204,13 @@ class NN_Model():
             self.update_parameters()
     
     # ########## public functions: ##########
+    def print_hyperparameters(self):
+        print('*** Training model with the following hyperparameters: ***')
+        print('learning rate (alpha): ', self.learning_rate)
+        print('number of iterations:', self.num_iterations)
+        # TODO: print other hyper parameters
+        # TODO: maybe format output a bit?
+
     def plot_cost(self):
         """ 
         Plots training costs.
