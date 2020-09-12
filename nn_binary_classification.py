@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.5.2
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -32,6 +32,7 @@ warnings.filterwarnings('ignore', message='invalid value encountered in multiply
 
 class NN_Model():
     __PRINT_COST_INTERVAL = 2000
+    __EPSILON = 1e-8
     
     def __init__(self,
                  X,
@@ -45,8 +46,8 @@ class NN_Model():
                  print_cost=False):
         np.random.seed(1)
 
-        self.X = X
-        self.Y = Y
+        self.X = X # inputs
+        self.Y = Y # labels
 
         self.num_iterations = num_iterations
         self.learning_rate = learning_rate
@@ -54,18 +55,20 @@ class NN_Model():
         self.regularization = str(regularization).upper()   # type of regularization to be implemented
         self.lambda_ = lambda_                              # lambda constant used for L2 regularization equation
 
-        self.b = {}
-        self.W = {}
-        self.Z = {}
-        self.A = {0: X}
-        self.db = {}
-        self.dW = {}
-        self.dA = {}
-        self.costs = [] # the cost at a given interval/number of iterations, __PRINT_COST_INTERVAL
+        self.b = {}         # bias unit (trainable); each key represents layer
+        self.W = {}         # weights (trainable); each key represents layer
+        self.Z = {}         # linear unit; each key represents layer
+        self.A = {0: X}     # post-activation unit; each key represents layer; 0th layer is just input layer
+        self.db = {}        # gradient of bias unit; each key represents layer
+        self.dW = {}        # gradient of weights; each key represents layer
+        self.dA = {}        # gradient of post-activation unit; each key represents layer
+        self.costs = []     # the cost at a given interval/number of iterations, __PRINT_COST_INTERVAL
 
-        self.is_training = True
-        self.dropout_mask = {}
-        self.layers = [ {'size': X.shape[0]} ] + hidden_layers + [ {'size': 1} ]  # array of layer shapes (nodes per layer), including input and output layers
+
+        self.is_training = True         # boolean to indicate training vs testing/predicting
+        self.dropout_mask = {}          # the mask of boolean values (per layer) used for dropout regularization
+        # array of layer shapes (nodes per layer), including input and output layers:
+        self.layers = [{'size': X.shape[0]}] + hidden_layers + [{'size': 1}]
         self.L = len(self.layers)-1     # number of layers
         self.m = X.shape[1]             # number of training examples
 
@@ -83,10 +86,10 @@ class NN_Model():
 
             self.W[l] = np.random.randn(layer_size, previous_layer_size)
             self.b[l] = np.zeros((layer_size, 1))
-            
+
             # scale weights:
             initialization = str(initialization).upper()
-            
+
             if initialization == 'HE':
                 self.W[l] *= 2 / np.sqrt(previous_layer_size)
             elif initialization == 'XAVIER':
@@ -126,6 +129,8 @@ class NN_Model():
             # if dropout is set for layer:
             # need to scale the values of neurons that weren't shut down:
             if self.is_training and (type(self.layers[l]) == dict) and ('keep_prob' in self.layers[l]):
+                # create matrix of boolean values (with same shape as A)
+                # we set value to `1` if RNG is greater than the probability to keep the neuron (`keep_prob`):
                 self.dropout_mask[l] = np.random.random((self.A[l].shape[0], self.A[l].shape[1])) < self.layers[l]['keep_prob']
                 self.A[l] *= self.dropout_mask[l] # apply mask
                 self.A[l] /= self.layers[l]['keep_prob'] # scale by keep_probability
@@ -242,14 +247,13 @@ class NN_Model():
         accuracy = np.mean(np.int8(predictions == Y))
         print('Accuracy: %s%%' % (accuracy * 100))
 
-
 # + pycharm={"name": "#%%\n"}
 ########## main: ##########
 train_X, train_Y, test_X, test_Y = load_2D_dataset()
 
 # +
 # hyper parameters:
-train_hidden_layers = [{ 'size': 20, 'keep_prob': 0.8 }, { 'size': 3, 'keep_prob': 0.75 }]
+train_hidden_layers = [{'size': 20, 'keep_prob': 0.8}, {'size': 3, 'keep_prob': 0.75}]
 train_learning_rate = 0.3
 train_num_iterations = 60000
 
@@ -260,11 +264,11 @@ new_model = NN_Model(train_X,
                      train_num_iterations,
                      initialization='xavier',
                      print_cost=False)
-# -
 
+# + pycharm={"name": "#%%\n"}
 new_model.train()
 
-# +
+# + pycharm={"name": "#%%\n"}
 print('----- Training set: -----')
 new_model.print_training_accuracy(train_X, train_Y)
 print('----- Test set: -----')
@@ -279,3 +283,4 @@ axes = plt.gca()
 axes.set_xlim([-0.75,0.40])
 axes.set_ylim([-0.75,0.65])
 plot_decision_boundary(lambda x: new_model.predict(x.T), train_X, np.squeeze(train_Y))
+
