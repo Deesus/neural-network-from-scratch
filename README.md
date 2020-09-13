@@ -4,6 +4,7 @@
 - Custom initialization: He, Xavier
 - Custom hyperparameters: learning rate, custom layers and layer size, number of iterations
 - Custom regularization: L2 regularization, dropout
+- Gradient Descent Optimizers: Momentum, Adam
 - Plot cost-iteration graph
 
 ### Notes:
@@ -17,8 +18,9 @@
 - Add features:
     - [ ] Mini-batch gradient descent
     - [ ] Batch norm
-    - [ ] Algorithms: momentum, RMS Prop, Adam
+    - [ ] Optimizer: RMS Prop
     - [ ] Softmax
+    - [ ] Learning rate decay
 
 ### License:
 Copyright 2020 Dee Reddy. BSD-2 License.

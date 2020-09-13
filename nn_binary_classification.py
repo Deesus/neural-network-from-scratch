@@ -31,8 +31,8 @@ warnings.filterwarnings('ignore', message='invalid value encountered in multiply
 # -
 
 class NN_Model():
-    __PRINT_COST_INTERVAL = 2000
-    __EPSILON = 1e-8
+    __PRINT_COST_INTERVAL = 2000    # the interval (i.e. iteration #) when the cost should be printed
+    __EPSILON = 1e-8                # a small value greater than zero
     
     def __init__(self,
                  X,
@@ -43,6 +43,7 @@ class NN_Model():
                  regularization=None,
                  lambda_=0.1,
                  initialization=None,
+                 optimizer=None,
                  print_cost=False):
         np.random.seed(1)
 
@@ -55,22 +56,36 @@ class NN_Model():
         self.regularization = str(regularization).upper()   # type of regularization to be implemented
         self.lambda_ = lambda_                              # lambda constant used for L2 regularization equation
 
-        self.b = {}         # bias unit (trainable); each key represents layer
-        self.W = {}         # weights (trainable); each key represents layer
-        self.Z = {}         # linear unit; each key represents layer
-        self.A = {0: X}     # post-activation unit; each key represents layer; 0th layer is just input layer
-        self.db = {}        # gradient of bias unit; each key represents layer
-        self.dW = {}        # gradient of weights; each key represents layer
-        self.dA = {}        # gradient of post-activation unit; each key represents layer
-        self.costs = []     # the cost at a given interval/number of iterations, __PRINT_COST_INTERVAL
-
+        self.b = {}             # bias unit (trainable); each key represents layer
+        self.W = {}             # weights (trainable); each key represents layer
+        self.Z = {}             # linear unit; each key represents layer
+        self.A = {0: X}         # post-activation unit; each key represents layer; 0th layer is just input layer
+        self.db = {}            # gradient of bias unit; each key represents layer
+        self.dW = {}            # gradient of weights; each key represents layer
+        self.dA = {}            # gradient of post-activation unit; each key represents layer
+        self.costs = []         # the cost at a given interval/number of iterations, __PRINT_COST_INTERVAL
+        self.m = X.shape[1]     # number of training examples
 
         self.is_training = True         # boolean to indicate training vs testing/predicting
         self.dropout_mask = {}          # the mask of boolean values (per layer) used for dropout regularization
+
         # array of layer shapes (nodes per layer), including input and output layers:
         self.layers = [{'size': X.shape[0]}] + hidden_layers + [{'size': 1}]
-        self.L = len(self.layers)-1     # number of layers
-        self.m = X.shape[1]             # number of training examples
+        self.L = len(self.layers)-1  # number of layers
+
+        # for gradient optimization:
+        # TODO: make Adam beta values user tunable; though, tuning them is rare:
+        self.beta1_adam = 0.9
+        self.beta2_adam = 0.999
+        self.beta_momentum = 0.9
+
+        self.optimizer = optimizer.upper()
+        if self.optimizer == 'MOMENTUM' or self.optimizer == 'ADAM':
+            self.moving_avg_dW = {}  # aka exponentially weighted average of dW -- its "velocity" (v)
+            self.moving_avg_db = {}  # aka exponentially weighted average of db -- its "velocity" (v)
+        if self.optimizer == 'ADAM':
+            self.moving_avg_squares_dW = {}  # aka exponentially weighted average of squares of dW
+            self.moving_avg_squares_db = {}  # aka exponentially weighted average of squares of db
 
         # initialize parameters, W and b:
         for l in range(1, self.L+1):
@@ -87,7 +102,7 @@ class NN_Model():
             self.W[l] = np.random.randn(layer_size, previous_layer_size)
             self.b[l] = np.zeros((layer_size, 1))
 
-            # scale weights:
+            # weights initialization (scaling weights):
             initialization = str(initialization).upper()
 
             if initialization == 'HE':
@@ -96,6 +111,16 @@ class NN_Model():
                 self.W[l] *= 1 / np.sqrt(previous_layer_size)
             else:
                 self.W[l] *= 0.01
+
+            # initialize velocity (if selected) to zeros:
+            W_shape = self.W[l].shape
+            b_shape = self.b[l].shape
+            if self.optimizer == 'MOMENTUM' or self.optimizer == 'ADAM':
+                self.moving_avg_dW[l] = np.zeros(W_shape)
+                self.moving_avg_db[l] = np.zeros(b_shape)
+            if self.optimizer == 'ADAM':
+                self.moving_avg_squares_dW[l] = np.zeros(W_shape)
+                self.moving_avg_squares_db[l] = np.zeros(b_shape)
 
     # ########## model training functions: ##########
     def relu(self, Z):
@@ -163,11 +188,37 @@ class NN_Model():
             if self.regularization == 'L2':
                  self.dW[l] += self.lambda_/self.m * self.W[l]
 
-    def update_parameters(self):
+    def update_parameters(self, iteration):
         """ Update parameters step during gradient descent. """
         for l in range(1, self.L+1):
-            self.W[l] -= (self.learning_rate * self.dW[l])
-            self.b[l] -= (self.learning_rate * self.db[l])
+            if self.optimizer == 'MOMENTUM':
+                self.moving_avg_dW[l] = (self.beta_momentum * self.moving_avg_dW[l]) + ((1-self.beta_momentum) * self.dW[l])
+                self.moving_avg_db[l] = (self.beta_momentum * self.moving_avg_db[l]) + ((1-self.beta_momentum) * self.db[l])
+
+                self.W[l] -= self.learning_rate * self.moving_avg_dW[l]
+                self.b[l] -= self.learning_rate * self.moving_avg_db[l]
+            elif self.optimizer == 'ADAM':
+                self.moving_avg_dW[l] = (self.beta1_adam * self.moving_avg_dW[l]) + ((1-self.beta1_adam) * self.dW[l])
+                self.moving_avg_db[l] = (self.beta1_adam * self.moving_avg_db[l]) + ((1-self.beta1_adam) * self.db[l])
+
+                # bias correction for exponentially weight avg (i.e. for it to "warm up"):
+                moving_avg_dW_corrected = self.moving_avg_dW[l] / (1-np.power(self.beta1_adam, iteration))
+                moving_avg_db_corrected = self.moving_avg_db[l] / (1-np.power(self.beta1_adam, iteration))
+
+                self.moving_avg_squares_dW[l] = (self.beta2_adam * self.moving_avg_squares_dW[l]) + ((1-self.beta2_adam) * np.square(self.dW[l]))
+                self.moving_avg_squares_db[l] = (self.beta2_adam * self.moving_avg_squares_db[l]) + ((1-self.beta2_adam) * np.square(self.db[l]))
+
+                # bias correction for exponentially weight avgs of squares:
+                moving_avg_squares_dW_corrected = self.moving_avg_squares_dW[l] / (1-np.power(self.beta2_adam, iteration))
+                moving_avg_squares_db_corrected = self.moving_avg_squares_db[l] / (1-np.power(self.beta2_adam, iteration))
+
+                # combining moving average of gradients (corrected) and moving average of squared gradients (corrected) gives us Adam:
+                # n.b. we add epsilon to prevent division by zero:
+                self.W[l] -= self.learning_rate * (moving_avg_dW_corrected / (np.sqrt(moving_avg_squares_dW_corrected) + self.__EPSILON))
+                self.b[l] -= self.learning_rate * (moving_avg_db_corrected / (np.sqrt(moving_avg_squares_db_corrected) + self.__EPSILON))
+            else:
+                self.W[l] -= self.learning_rate * self.dW[l]
+                self.b[l] -= self.learning_rate * self.db[l]
 
     def compute_cost(self, Y_hat):
         """
@@ -186,7 +237,7 @@ class NN_Model():
             cost = cross_entropy_cost
 
         return cost
-    
+
     def train(self):
         """ Trains the model after initialization. """
         self.is_training = True
@@ -194,25 +245,33 @@ class NN_Model():
 
         self.print_hyperparameters()
 
-        for i in range(self.num_iterations+1):
+        for i in range(1, self.num_iterations+1):
             Y_hat = self.forward_prop()
             self.back_prop()
 
-            if i % self.__PRINT_COST_INTERVAL == 0:
+            if i == 1 or i % self.__PRINT_COST_INTERVAL == 0:
                 cost = self.compute_cost(Y_hat)
                 self.costs.append(cost)
                 
                 # we only want to print cost during training for debugging purposes:
                 if self.print_cost:
-                    print('cost at %s iteration: %s' % (i, cost))
+                    print('cost at iteration %s: %s' % (i, cost))
 
-            self.update_parameters()
+            self.update_parameters(i)
     
     # ########## public functions: ##########
     def print_hyperparameters(self):
         print('*** Training model with the following hyperparameters: ***')
         print('learning rate (alpha): ', self.learning_rate)
         print('number of iterations:', self.num_iterations)
+        if self.optimizer == 'MOMENTUM':
+            print('using gradient descent with momentum')
+        elif self.optimizer == 'ADAM':
+            print('using Adam optimizer')
+        else:
+            print('using gradient descent')
+        print()  # just to create newline
+
         # TODO: print other hyper parameters
         # TODO: maybe format output a bit?
 
@@ -240,12 +299,13 @@ class NN_Model():
         predictions = np.where(Y_hat > 0.5, 1, 0)
         return predictions
     
-    def print_training_accuracy(self, X, Y):
+    def print_accuracy(self, X, Y):
         """ Prints the accuracy of train/test sets. """
         predictions = self.predict(X)
         
         accuracy = np.mean(np.int8(predictions == Y))
         print('Accuracy: %s%%' % (accuracy * 100))
+
 
 # + pycharm={"name": "#%%\n"}
 ########## main: ##########
@@ -254,7 +314,7 @@ train_X, train_Y, test_X, test_Y = load_2D_dataset()
 # +
 # hyper parameters:
 train_hidden_layers = [{'size': 20, 'keep_prob': 0.8}, {'size': 3, 'keep_prob': 0.75}]
-train_learning_rate = 0.3
+train_learning_rate = 0.02
 train_num_iterations = 60000
 
 new_model = NN_Model(train_X,
@@ -263,16 +323,17 @@ new_model = NN_Model(train_X,
                      train_learning_rate,
                      train_num_iterations,
                      initialization='xavier',
-                     print_cost=False)
+                     optimizer='adam',
+                     print_cost=True)
 
 # + pycharm={"name": "#%%\n"}
 new_model.train()
 
 # + pycharm={"name": "#%%\n"}
 print('----- Training set: -----')
-new_model.print_training_accuracy(train_X, train_Y)
+new_model.print_accuracy(train_X, train_Y)
 print('----- Test set: -----')
-new_model.print_training_accuracy(test_X, test_Y)
+new_model.print_accuracy(test_X, test_Y)
 
 new_model.plot_cost()
 
@@ -283,4 +344,6 @@ axes = plt.gca()
 axes.set_xlim([-0.75,0.40])
 axes.set_ylim([-0.75,0.65])
 plot_decision_boundary(lambda x: new_model.predict(x.T), train_X, np.squeeze(train_Y))
+
+
 
