@@ -19,10 +19,7 @@
 # +
 import numpy as np
 import matplotlib.pyplot as plt
-# binary classification data:
-from data_binary_classification import plot_decision_boundary, load_2D_dataset
-# multi-class classification data:
-from data_multiclass import load_multiclass_dataset
+
 import warnings
 
 # ignore warnings by message (caused by log of zeros/close-to-zero numbers during training):
@@ -156,6 +153,9 @@ class NN_Model():
         return self.sigmoid(Z) * (1 - self.sigmoid(Z))
 
     def softmax(self, Z):
+        # to prevent possible NaN breaking our code:
+        Z[np.isnan(Z)] = 0
+
         t = np.exp(Z)
 
         # the exponential can become so large that even float64 is unable to handle it, resulting in an overflow warning and resulting in NaN values.
@@ -386,7 +386,7 @@ class NN_Binary(NN_Model):
 
 # + pycharm={"name": "#%%\n"}
 # N.b. requisite dimensions of X = (# of features, # of examples)
-# N.b. requisite dimensions of Y = (# nodes in final layer, # of examples)
+# N.b. requisite dimensions of Y = (# nodes in fin|al layer, # of examples)
 class NN_Softmax(NN_Model):
     def __init__(self,
                   X,
@@ -491,9 +491,12 @@ class NN_Softmax(NN_Model):
 
 # ## Main
 #
-# #### Binary Classification:
+# ### Binary Classification:
 
 # + pycharm={"name": "#%%\n"}
+# binary classification data:
+from data_binary_classification import plot_decision_boundary, load_2D_dataset
+
 # import data for binary classification:
 bin_class_train_X, bin_class_train_Y, bin_class_test_X, bin_class_test_Y = load_2D_dataset()
 
@@ -535,7 +538,7 @@ axes.set_ylim([-0.75,0.65])
 plot_decision_boundary(lambda x: binary_model.predict(x.T), bin_class_train_X, np.squeeze(bin_class_train_Y))
 # -
 
-# #### Multi-class/Softmax Classification:
+# ### Multi-class/Softmax Classification:
 
 # + pycharm={"name": "#%%\n"}
 # Spectral Data:
@@ -565,16 +568,15 @@ multiclass_model = NN_Softmax(multiclass_train_X,
                               train_hidden_layers,
                               learning_rate=0.1,
                               learning_rate_decay_rate=1e-4,
-                              num_iterations=20000,
+                              num_iterations=8000,
                               initialization='xavier',
                               optimizer='adam',
                               print_cost=True)
 
 # + pycharm={"name": "#%%\n"}
+# train model:
 multiclass_model.train()
 
 # + pycharm={"name": "#%%\n"}
+# print accuracy:
 multiclass_model.print_accuracy(multiclass_train_X, multiclass_train_Y)
-
-# + pycharm={"name": "#%%\n"}
-
