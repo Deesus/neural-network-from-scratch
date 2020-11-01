@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore', message='invalid value encountered in multiply
 # -
 
 class NN_Model():
-    __PRINT_COST_INTERVAL = 4000    # the interval (i.e. iteration #) when the cost should be printed
+    __PRINT_COST_INTERVAL = 2000    # the interval (i.e. iteration #) when the cost should be printed
     __EPSILON = 1e-8                # a small value greater than zero
     
     def __init__(self,
@@ -566,7 +566,6 @@ multiclass_model = NN_Softmax(multiclass_train_X,
                               learning_rate=0.1,
                               learning_rate_decay_rate=1e-4,
                               num_iterations=20000,
-                              # regularization='l2',
                               initialization='xavier',
                               optimizer='adam',
                               print_cost=True)
