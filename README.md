@@ -11,7 +11,7 @@
 - The duplicate `.py` files (e.g. `nn_binary_classification.py`) are Jupyter pairings -- used for diffing Jupyter Notebook changes via [Jupytext](https://github.com/mwouts/jupytext). Normally, we'd version control only the `.py` files and ignore the `.ipynb` pairings; however, for quick viewing on GitHub and general convenience, I'm keeping both file extensions.
 
 ### TODO:
-- [ ] Use **kwargs
+- [ ] Use keyword args
 - [ ] Add API documentation
 - [ ] Replace `nn_utils` with custom functions
 - [ ] Add method docstrings
@@ -21,4 +21,4 @@
     - [ ] Softmax
 
 ### License:
-Copyright 2020 Dee Reddy. BSD-2 License.
+Copyright 2020-2021 Dee Reddy. BSD-2 License.
