@@ -21,4 +21,4 @@
     - [ ] Softmax
 
 ### License:
-Copyright 2020-2021 Dee Reddy. BSD-2 License.
+Copyright 2020-2021 Deepankara Reddy. BSD-2 License.
